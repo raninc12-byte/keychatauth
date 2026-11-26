@@ -35,6 +35,7 @@ DarkChat is a real-time chat site on Cloudflare Workers. It started as Cloudflar
   - **`early`:** automatic for the first 100 accounts, by insert order (`rowid`).
 - **Admin panel:** admins only (the shield button next to your name). From it you can search members, toggle Verified and set roles. The server enforces this: `/api/admin/*` returns 403 for non-admins, and nobody can remove their own admin role.
 - **Custom 404 page:** shown to browsers for any page that doesn't exist. The owner wrote its wording, and it's kept exactly as written, spelling included. Don't "fix" it without asking.
+- **Sign-in and sign-up pages:** DarkChat's own (`src/authpages.ts`, Uiverse form by JohnnyCSilva), plugged into OpenAuth's `PasswordProvider` as `login` and `register`. The password-reset page is still OpenAuth's built-in one. Google and Apple buttons are shown but disabled ("coming soon"). Unchecking "Remember me" makes the session cookies last only until the browser closes (`kc_sess=1`).
 - **Accounts:** email and password through OpenAuth. Sessions are HttpOnly cookies (`kc_at` for 1 day, `kc_rt` for 30 days), and the access token is refreshed automatically.
 
 ## Code map
