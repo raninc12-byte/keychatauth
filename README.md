@@ -1,17 +1,22 @@
-# OpenAuth Server
+# KeyChat
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/openauth-template)
+Real-time chat on Cloudflare Workers, built on top of the [OpenAuth](https://openauth.js.org/) login server this repo started as.
 
-![OpenAuth Template Preview](https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/b2ff10c6-8f7c-419f-8757-e2ccf1c84500/public)
+## Features
 
-<!-- dash-content-start -->
+- **Rooms and direct messages.** Anyone signed in can create or join a `#room`, or message another user privately. Messages arrive instantly over WebSockets; each room and DM is its own [Durable Object](https://developers.cloudflare.com/durable-objects/).
+- **Compression.** Each message is stored deflate-compressed in the Durable Object's SQLite storage, falling back to plain text when compressing would make a tiny message bigger. Chat history is sent to the browser as one deflate-compressed binary frame, and the browser unpacks it with `DecompressionStream`. Live messages use the WebSocket's built-in `permessage-deflate` compression.
+- **Messages delete themselves after 24 hours.** Each message shows a countdown. A Durable Object alarm deletes expired messages on the server and tells open tabs to remove them. Nothing is kept after that.
+- **Accounts.** Email and password sign-up, login and password reset through OpenAuth (D1 + KV), with a signed-in session kept in HttpOnly cookies.
 
-[OpenAuth](https://openauth.js.org/) is a universal provider for managing user authentication. By deploying OpenAuth on Cloudflare Workers, you can add scalable authentication to your application. This demo showcases login, user registration, and password reset, with storage and state powered by [D1](https://developers.cloudflare.com/d1/) and [KV](https://developers.cloudflare.com/kv/). [Observability](https://developers.cloudflare.com/workers/observability/logs/workers-logs/#enable-workers-logs) is on by default.
+| Path | What it is |
+| --- | --- |
+| `/` | The chat app (redirects to `/login` when signed out) |
+| `/login`, `/logout` | Start sign-in / sign out |
+| `/api/me`, `/api/users`, `/api/rooms` | JSON API used by the app |
+| `/ws/room/:name`, `/ws/dm/:userId` | WebSocket chat connections |
 
-> [!IMPORTANT]
-> When using C3 to create this project, select "no" when it asks if you want to deploy. You need to follow this project's [setup steps](https://github.com/cloudflare/templates/tree/main/openauth-template#setup-steps) before deploying.
-
-<!-- dash-content-end -->
+Verification codes are printed to the Worker logs (`npx wrangler tail`). Connect a real email sender in `src/index.ts` (`sendCode`) before inviting people.
 
 ## Getting Started
 
@@ -43,7 +48,7 @@ A live public deployment of this template is available at [https://openauth-temp
    npx wrangler kv namespace create AUTH_STORAGE
    ```
    ...and update the `kv_namespaces` -> `id` field in `wrangler.json` with the new namespace ID.
-5. Deploy the project!
+5. Deploy the project! (The new `room` table migration and the `ChatRoom` Durable Object are applied automatically: `predeploy` runs the D1 migrations.)
    ```bash
    npx wrangler deploy
    ```
