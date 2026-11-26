@@ -26,10 +26,10 @@ type Role = "user" | "mod" | "admin";
 /** The first this-many accounts get the "Early member" badge. */
 const EARLY_MEMBERS = 100;
 
-/** Every user with their badges. "early" comes from sign-up order, not a stored flag. */
+/** Every user with their badges. "early" comes from sign-up order: rowid only ever increases as accounts are inserted. */
 const USERS_WITH_BADGES = `
 	SELECT id, email, verified, role, created_at,
-		ROW_NUMBER() OVER (ORDER BY created_at, id) <= ${EARLY_MEMBERS} AS early
+		ROW_NUMBER() OVER (ORDER BY rowid) <= ${EARLY_MEMBERS} AS early
 	FROM user`;
 type UserRow = User & { created_at: string; early: number };
 
