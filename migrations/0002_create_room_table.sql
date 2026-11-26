@@ -1,0 +1,8 @@
+-- Migration number: 0002 	 2026-11-26T00:00:00.000Z
+CREATE TABLE IF NOT EXISTS room (
+    name TEXT PRIMARY KEY NOT NULL,
+    created_by TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO room (name) VALUES ('general');
