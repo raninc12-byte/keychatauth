@@ -174,6 +174,9 @@ async function handleApp(request: Request, url: URL, env: Env, me: User): Promis
 		}
 		// Build a fresh request so a client can never supply its own identity headers.
 		const headers = new Headers({ Upgrade: "websocket", "x-chat-user-id": me.id, "x-chat-user-name": displayName(me.email) });
+		// Pass the browser's permessage-deflate offer through so live messages are compressed.
+		const extensions = request.headers.get("Sec-WebSocket-Extensions");
+		if (extensions) headers.set("Sec-WebSocket-Extensions", extensions);
 		const stub = env.CHAT_ROOM.get(env.CHAT_ROOM.idFromName(key));
 		return stub.fetch(new Request(url.toString(), { headers }));
 	}
@@ -183,13 +186,27 @@ async function handleApp(request: Request, url: URL, env: Env, me: User): Promis
 
 async function getSession(request: Request, client: ReturnType<typeof createClient>) {
 	const cookies = parseCookies(request.headers.get("Cookie"));
-	const access = cookies.kc_at;
-	if (!access) return null;
-	const verified = await client.verify(subjects, access, { refresh: cookies.kc_rt });
+	let access = cookies.kc_at;
+	let refresh = cookies.kc_rt;
+	let renewed = false;
+	if (!access) {
+		// The access cookie expires after a day; use the refresh token to sign back in.
+		if (!refresh) return null;
+		const r = await client.refresh(refresh);
+		if (r.err || !r.tokens) return null;
+		access = r.tokens.access;
+		refresh = r.tokens.refresh;
+		renewed = true;
+	}
+	const verified = await client.verify(subjects, access, { refresh });
 	if (verified.err || verified.subject.type !== "user") return null;
 	return {
 		userId: verified.subject.properties.id,
-		refreshed: verified.tokens ? tokenCookies(verified.tokens.access, verified.tokens.refresh) : null,
+		refreshed: verified.tokens
+			? tokenCookies(verified.tokens.access, verified.tokens.refresh)
+			: renewed
+				? tokenCookies(access, refresh)
+				: null,
 	};
 }
 

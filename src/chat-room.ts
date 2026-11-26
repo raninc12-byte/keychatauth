@@ -47,6 +47,10 @@ export class ChatRoom extends DurableObject<Env> {
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
 		this.sql = ctx.storage.sql;
+		this.ensureSchema();
+	}
+
+	private ensureSchema() {
 		this.sql.exec(`CREATE TABLE IF NOT EXISTS message (
 			id TEXT PRIMARY KEY,
 			user_id TEXT NOT NULL,
@@ -132,6 +136,8 @@ export class ChatRoom extends DurableObject<Env> {
 		const ids = [...this.sql.exec<{ id: string }>(`SELECT id FROM message`)].length;
 		if (ids === 0 && this.ctx.getWebSockets().length === 0) {
 			await this.ctx.storage.deleteAll();
+			// This object may stay warm, so put the empty table back right away.
+			this.ensureSchema();
 		}
 	}
 

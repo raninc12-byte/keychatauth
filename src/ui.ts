@@ -195,9 +195,10 @@ $("#send").onsubmit = (e) => {
   $("#text").value = "";
 };
 $("#text").onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#send").requestSubmit(); } };
-function sendMedia(media) {
-  if (!ws || ws.readyState !== 1) return false;
-  ws.send(JSON.stringify({ type: "msg", text: "", media }));
+// sock is the connection the action started in; if the user switched chats since, don't send.
+function sendMedia(media, sock = ws) {
+  if (!sock || sock !== ws || sock.readyState !== 1) return false;
+  sock.send(JSON.stringify({ type: "msg", text: "", media }));
   return true;
 }
 const note = (t) => { $("#note").textContent = t; };
@@ -315,6 +316,7 @@ $("#vidfile").onchange = async () => {
   $("#vidfile").value = "";
   if (!file) return;
   $("#vidbtn").disabled = true;
+  const startedIn = ws;
   try {
     const before = (file.size / 1048576).toFixed(1);
     const out = await compressVideo(file, (p, attempt) => note("Compressing video" + (attempt ? " (pass " + (attempt + 1) + ")" : "") + "… " + Math.round(p * 100) + "% — keep this tab open"));
@@ -322,7 +324,9 @@ $("#vidfile").onchange = async () => {
     const res = await fetch("/api/media", { method: "POST", headers: { "Content-Type": out.blob.type }, body: out.blob });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || "Upload failed.");
-    if (!sendMedia({ kind: "video", key: body.key, w: out.w, h: out.h, size: body.size })) throw new Error("Not connected — try again.");
+    if (!sendMedia({ kind: "video", key: body.key, w: out.w, h: out.h, size: body.size }, startedIn)) {
+      throw new Error("Video not sent: you switched chats or got disconnected while it was processing.");
+    }
     note("");
   } catch (err) {
     note(err.message);
