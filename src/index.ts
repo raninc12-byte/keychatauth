@@ -6,6 +6,7 @@ import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 import { APP_HTML } from "./ui";
+import { notFoundPage, wantsPage } from "./notfound";
 
 export { ChatRoom } from "./chat-room";
 
@@ -20,7 +21,22 @@ const CLIENT_ID = "darkchat";
 const MAX_VIDEO_BYTES = 3 * 1024 * 1024;
 const ROOM_NAME = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
-type User = { id: string; email: string };
+type User = { id: string; email: string; verified: number; role: Role };
+type Role = "user" | "mod" | "admin";
+
+/** The first this-many accounts get the "Early member" badge. */
+const EARLY_MEMBERS = 100;
+
+/** Every user with their badges. "early" comes from sign-up order: rowid only ever increases as accounts are inserted. */
+const USERS_WITH_BADGES = `
+	SELECT id, email, verified, role, created_at,
+		ROW_NUMBER() OVER (ORDER BY rowid) <= ${EARLY_MEMBERS} AS early
+	FROM user`;
+type UserRow = User & { created_at: string; early: number };
+
+function publicUser(u: UserRow) {
+	return { id: u.id, name: displayName(u.email), verified: !!u.verified, role: u.role, early: !!u.early };
+}
 
 function authServer(env: Env) {
 	return issuer({
@@ -75,14 +91,18 @@ export default {
 
 		const isApp =
 			url.pathname === "/" || url.pathname.startsWith("/api/") || url.pathname.startsWith("/ws/") || url.pathname.startsWith("/media/");
-		if (!isApp) return auth.fetch(request, env, ctx);
+		if (!isApp) {
+			const res = await auth.fetch(request, env, ctx);
+			// Show the custom page instead of the auth server's bare 404.
+			return res.status === 404 && wantsPage(request) ? notFoundPage() : res;
+		}
 
 		// Everything below needs a signed-in user.
 		const session = await getSession(request, client);
 		if (!session) {
 			return url.pathname === "/" ? Response.redirect(url.origin + "/login", 302) : new Response("Unauthorized", { status: 401 });
 		}
-		const me = await env.AUTH_DB.prepare(`SELECT id, email FROM user WHERE id = ?`).bind(session.userId).first<User>();
+		const me = await env.AUTH_DB.prepare(`SELECT id, email, verified, role FROM user WHERE id = ?`).bind(session.userId).first<User>();
 		if (!me) return redirect("/login", [clearCookie("kc_at"), clearCookie("kc_rt")]);
 
 		const response = await handleApp(request, url, env, me);
@@ -100,11 +120,44 @@ async function handleApp(request: Request, url: URL, env: Env, me: User): Promis
 	if (url.pathname === "/") {
 		return new Response(APP_HTML, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 	}
-	if (url.pathname === "/api/me") return Response.json({ id: me.id, name: displayName(me.email) });
+	if (url.pathname === "/api/me") {
+		const row = await env.AUTH_DB.prepare(`SELECT * FROM (${USERS_WITH_BADGES}) WHERE id = ?`).bind(me.id).first<UserRow>();
+		return Response.json(publicUser(row ?? { ...me, created_at: "", early: 0 }));
+	}
 
+	// Everyone, including you, so the page can show badges on any message.
 	if (url.pathname === "/api/users") {
-		const { results } = await env.AUTH_DB.prepare(`SELECT id, email FROM user WHERE id != ? ORDER BY email`).bind(me.id).all<User>();
-		return Response.json(results.map((u) => ({ id: u.id, name: displayName(u.email) })));
+		const { results } = await env.AUTH_DB.prepare(`${USERS_WITH_BADGES} ORDER BY email`).all<UserRow>();
+		return Response.json(results.map(publicUser));
+	}
+
+	if (url.pathname.startsWith("/api/admin/")) {
+		if (me.role !== "admin") return Response.json({ error: "Admins only." }, { status: 403 });
+		if (url.pathname === "/api/admin/users" && request.method === "GET") {
+			const { results } = await env.AUTH_DB.prepare(`${USERS_WITH_BADGES} ORDER BY created_at`).all<UserRow>();
+			return Response.json(results.map((u) => ({ ...publicUser(u), email: u.email, joined: u.created_at })));
+		}
+		const target = url.pathname.match(/^\/api\/admin\/users\/([0-9a-f]{32})$/);
+		if (target && request.method === "POST") {
+			if (!sameOrigin(request, url)) return new Response("Forbidden", { status: 403 });
+			const body = await request.json<{ verified?: unknown; role?: unknown }>().catch(() => ({}) as Record<string, unknown>);
+			const id = target[1];
+			if (body.role !== undefined) {
+				if (body.role !== "user" && body.role !== "mod" && body.role !== "admin") {
+					return Response.json({ error: "Role must be user, mod or admin." }, { status: 400 });
+				}
+				// Stop the last admin from locking everyone out.
+				if (id === me.id && body.role !== "admin") return Response.json({ error: "You can't remove your own admin role." }, { status: 400 });
+				await env.AUTH_DB.prepare(`UPDATE user SET role = ? WHERE id = ?`).bind(body.role, id).run();
+			}
+			if (body.verified !== undefined) {
+				await env.AUTH_DB.prepare(`UPDATE user SET verified = ? WHERE id = ?`).bind(body.verified ? 1 : 0, id).run();
+			}
+			const row = await env.AUTH_DB.prepare(`SELECT * FROM (${USERS_WITH_BADGES}) WHERE id = ?`).bind(id).first<UserRow>();
+			if (!row) return Response.json({ error: "No such user." }, { status: 404 });
+			return Response.json({ ...publicUser(row), email: row.email, joined: row.created_at });
+		}
+		return new Response("Not found", { status: 404 });
 	}
 
 	if (url.pathname === "/api/gifs") return searchGifs(url, env, me);
@@ -181,7 +234,7 @@ async function handleApp(request: Request, url: URL, env: Env, me: User): Promis
 		return stub.fetch(new Request(url.toString(), { headers }));
 	}
 
-	return new Response("Not found", { status: 404 });
+	return wantsPage(request) ? notFoundPage() : new Response("Not found", { status: 404 });
 }
 
 async function getSession(request: Request, client: ReturnType<typeof createClient>) {
