@@ -116,6 +116,24 @@ dialog[open]{display:flex;flex-direction:column}
 .switch input:checked{background:var(--verified)}
 .switch input:checked::after{transform:translateX(14px)}
 .urow select{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:9px;padding:5px 8px}
+/* From Uiverse.io by kennyotsu - https://uiverse.io/kennyotsu/fresh-lizard-20
+MIT License, Copyright (c) kennyotsu (kotsu)
+   Word-spinner loader, adapted for DarkChat: classes prefixed dc-ld, DarkChat font and accent.
+   --ld-bg must match the color behind the loader so the top/bottom fade blends in. */
+.dc-ld-card{background:#17171a;border:1px solid var(--line);padding:1rem 2rem;border-radius:var(--r)}
+.dc-ld{--ld-bg:#151517;color:var(--dim);font-weight:500;font-size:25px;line-height:40px;box-sizing:content-box;height:40px;padding:10px;display:flex;border-radius:8px}
+.dc-ld-card .dc-ld{--ld-bg:#17171a}
+.dc-ld p{margin:0}
+.dc-ld-words{overflow:hidden;position:relative}
+.dc-ld-words::after{content:"";position:absolute;inset:0;background:linear-gradient(var(--ld-bg) 10%,transparent 30%,transparent 70%,var(--ld-bg) 90%);z-index:20}
+.dc-ld-word{display:block;height:100%;padding-left:6px;color:var(--accent);animation:dc-ld-spin 4s infinite}
+@keyframes dc-ld-spin{10%{transform:translateY(-102%)}25%{transform:translateY(-100%)}35%{transform:translateY(-202%)}50%{transform:translateY(-200%)}60%{transform:translateY(-302%)}75%{transform:translateY(-300%)}85%{transform:translateY(-402%)}100%{transform:translateY(-400%)}}
+.dc-ld.sm{font-size:15px;line-height:24px;height:24px;padding:2px 0}
+#gifgrid .dc-ld{--ld-bg:#141416;grid-column:1/-1;justify-self:center;margin-top:12px}
+.ld-center{margin:auto}
+#boot{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:var(--bg);transition:opacity .3s}
+#boot.done{opacity:0;pointer-events:none}
+#note{display:flex;align-items:center;gap:10px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;padding:10px 16px;border-radius:14px;transition:.2s;pointer-events:none;z-index:20;font-size:14px;background:rgba(20,20,22,.95)}
 #toast.show{opacity:1;transform:translateX(-50%)}
 
@@ -186,7 +204,35 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 let me, ws, current, messages = new Map(), users = new Map();
 
 function toast(t) { const n = $("#toast"); n.textContent = t; n.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => n.classList.remove("show"), 3200); }
+// ---- Loader ----
+// From Uiverse.io by kennyotsu - https://uiverse.io/kennyotsu/fresh-lizard-20
+// MIT License, Copyright (c) kennyotsu (kotsu)
+const LOADER_WORDS = {
+  chat: ["rooms", "messages", "members", "gifs", "rooms"],
+  video: ["video", "frames", "audio", "upload", "video"],
+  gif: ["gifs", "reactions", "memes", "trending", "gifs"],
+};
+function loader(words, small) {
+  const box = el("div", "dc-ld" + (small ? " sm" : ""));
+  box.setAttribute("role", "status");
+  box.setAttribute("aria-label", "Loading");
+  const list = el("div", "dc-ld-words");
+  list.setAttribute("aria-hidden", "true");
+  for (const w of words) list.append(el("span", "dc-ld-word", w));
+  box.append(el("p", "", "loading"), list);
+  return box;
+}
+function loaderCard(words) { const c = el("div", "dc-ld-card"); c.append(loader(words)); return c; }
+const boot = el("div"); boot.id = "boot"; boot.append(loaderCard(LOADER_WORDS.chat)); document.body.append(boot);
+
 const note = (t) => { $("#note").textContent = t; };
+// Progress text next to a loader; the loader is kept between updates so its animation doesn't restart.
+function busyNote(t) {
+  const n = $("#note");
+  let span = n.querySelector(".note-text");
+  if (!span) { span = el("span", "note-text"); n.replaceChildren(loader(LOADER_WORDS.video, true), span); }
+  span.textContent = t;
+}
 
 function hue(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
 function avatar(name, small) {
@@ -283,7 +329,8 @@ function open(kind, id) {
   else { const u = users.get(id); title.append(avatar(u ? u.name : "?", true), el("span", "", u ? u.name : "Direct message"), badges(u)); }
   document.querySelectorAll(".item").forEach((b) => b.classList.toggle("active", b.dataset.key === kind + ":" + id));
   setStatus("connecting…");
-  $("#log").replaceChildren();
+  const waiting = loaderCard(LOADER_WORDS.chat); waiting.classList.add("ld-center");
+  $("#log").replaceChildren(waiting);
   ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/" + kind + "/" + encodeURIComponent(id));
   ws.binaryType = "arraybuffer";
   ws.onopen = () => { setStatus("live", true); document.querySelectorAll("#send button, #text").forEach((b) => b.disabled = false); $("#text").focus(); };
@@ -365,7 +412,7 @@ function sendMedia(media, sock = ws) {
 let gifTimer;
 async function loadGifs(q) {
   const grid = $("#gifgrid");
-  grid.textContent = "Loading…";
+  grid.replaceChildren(loader(LOADER_WORDS.gif, true));
   const res = await fetch("/api/gifs?q=" + encodeURIComponent(q));
   const body = await res.json().catch(() => ({ error: "Couldn't load GIFs." }));
   grid.replaceChildren();
@@ -477,8 +524,8 @@ $("#vidfile").onchange = async () => {
   const startedIn = ws;
   try {
     const before = (file.size / 1048576).toFixed(1);
-    const out = await compressVideo(file, (p, attempt) => note("Compressing video" + (attempt ? " (pass " + (attempt + 1) + ")" : "") + "… " + Math.round(p * 100) + "% — keep this tab open"));
-    note("Uploading " + (out.blob.size / 1048576).toFixed(2) + " MB (was " + before + " MB)…");
+    const out = await compressVideo(file, (p, attempt) => busyNote("Compressing video" + (attempt ? " (pass " + (attempt + 1) + ")" : "") + "… " + Math.round(p * 100) + "% — keep this tab open"));
+    busyNote("Uploading " + (out.blob.size / 1048576).toFixed(2) + " MB (was " + before + " MB)…");
     const res = await fetch("/api/media", { method: "POST", headers: { "Content-Type": out.blob.type }, body: out.blob });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || "Upload failed.");
@@ -539,11 +586,18 @@ $("#menu").onclick = () => document.body.classList.toggle("nav");
 $("main").addEventListener("click", (e) => { if (document.body.classList.contains("nav") && !e.target.closest("#menu")) document.body.classList.remove("nav"); });
 
 (async () => {
-  me = await (await fetch("/api/me")).json();
-  await loadUsers();
-  const rooms = await loadRooms();
-  if (rooms.includes("general")) open("room", "general");
-  setInterval(loadUsers, 60000);
+  try {
+    me = await (await fetch("/api/me")).json();
+    await loadUsers();
+    const rooms = await loadRooms();
+    if (rooms.includes("general")) open("room", "general");
+    setInterval(loadUsers, 60000);
+  } catch {
+    toast("Couldn't load DarkChat. Try refreshing.");
+  } finally {
+    boot.classList.add("done");
+    setTimeout(() => boot.remove(), 400);
+  }
 })();
 </script>
 </body>
