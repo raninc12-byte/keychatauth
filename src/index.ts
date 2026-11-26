@@ -6,6 +6,7 @@ import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 import { APP_HTML } from "./ui";
+import { notFoundPage, wantsPage } from "./notfound";
 
 export { ChatRoom } from "./chat-room";
 
@@ -90,7 +91,11 @@ export default {
 
 		const isApp =
 			url.pathname === "/" || url.pathname.startsWith("/api/") || url.pathname.startsWith("/ws/") || url.pathname.startsWith("/media/");
-		if (!isApp) return auth.fetch(request, env, ctx);
+		if (!isApp) {
+			const res = await auth.fetch(request, env, ctx);
+			// Show the custom page instead of the auth server's bare 404.
+			return res.status === 404 && wantsPage(request) ? notFoundPage() : res;
+		}
 
 		// Everything below needs a signed-in user.
 		const session = await getSession(request, client);
@@ -229,7 +234,7 @@ async function handleApp(request: Request, url: URL, env: Env, me: User): Promis
 		return stub.fetch(new Request(url.toString(), { headers }));
 	}
 
-	return new Response("Not found", { status: 404 });
+	return wantsPage(request) ? notFoundPage() : new Response("Not found", { status: 404 });
 }
 
 async function getSession(request: Request, client: ReturnType<typeof createClient>) {
