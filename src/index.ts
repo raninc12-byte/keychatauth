@@ -17,6 +17,9 @@ const subjects = createSubjects({
 	}),
 });
 
+/** The DarkChat logo (a speech bubble with a crescent moon) as an SVG data URL, for OpenAuth's pages. */
+const DARKCHAT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23c9a46b' fill-rule='evenodd' d='M7 3h18a5 5 0 0 1 5 5v12a5 5 0 0 1-5 5H15l-6.2 4.6c-.7.5-1.8 0-1.8-.9V25a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm11.6 5.2a6.4 6.4 0 1 0 5.6 9.4 5.2 5.2 0 1 1-5.6-9.4z'/%3E%3C/svg%3E";
+
 const CLIENT_ID = "darkchat";
 /** Largest video we accept after the browser has compressed it. */
 const MAX_VIDEO_BYTES = 3 * 1024 * 1024;
@@ -53,8 +56,10 @@ function authServer(env: Env) {
 		},
 		theme: {
 			title: "DarkChat",
-			primary: "#5b5bd6",
-			favicon: "https://workers.cloudflare.com//favicon.ico",
+			primary: "#c9a46b",
+			background: "#0d0d0f",
+			favicon: DARKCHAT_ICON,
+			logo: DARKCHAT_ICON,
 		},
 		success: async (ctx, value) => {
 			return ctx.subject("user", { id: await getOrCreateUser(env, value.email) });

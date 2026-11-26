@@ -6,6 +6,7 @@ export const APP_HTML = /* html */ `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06060b">
 <title>DarkChat</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23c9a46b' fill-rule='evenodd' d='M7 3h18a5 5 0 0 1 5 5v12a5 5 0 0 1-5 5H15l-6.2 4.6c-.7.5-1.8 0-1.8-.9V25a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm11.6 5.2a6.4 6.4 0 1 0 5.6 9.4 5.2 5.2 0 1 1-5.6-9.4z'/%3E%3C/svg%3E">
 <style>
 :root{color-scheme:dark;--bg:#0d0d0f;--glass:rgba(255,255,255,.035);--glass-2:rgba(255,255,255,.055);--glass-hi:rgba(255,255,255,.085);--line:rgba(255,255,255,.08);--line-2:rgba(255,255,255,.14);--text:#e8e6e3;--muted:#a19d97;--dim:#6f6b66;--accent:#c9a46b;--accent-ink:#1a1408;--ok:#7fb48a;--warn:#d6a85a;--danger:#d98282;--verified:#7aa5d6;--r:10px;--blur:blur(10px)}
 *{box-sizing:border-box}
@@ -22,7 +23,7 @@ input,textarea,select{font:inherit;color:inherit}
 /* sidebar */
 aside{width:272px;flex:none;display:flex;flex-direction:column;overflow:hidden}
 .brand{display:flex;align-items:center;gap:10px;padding:18px 18px 10px}
-.logo{width:26px;height:26px;border-radius:6px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:14px}
+.logo{width:28px;height:28px;flex:none;display:block}
 .brand b{font-size:17px;letter-spacing:-.01em}
 .scroll{flex:1;overflow:auto;padding:4px 10px 10px}
 .section{display:flex;align-items:center;justify-content:space-between;margin:14px 8px 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
@@ -178,7 +179,7 @@ MIT License, Copyright (c) chase2k25 (chandu.exe)
 </head>
 <body>
 <aside class="glass" aria-label="Chats">
- <div class="brand"><div class="logo" aria-hidden="true">D</div><b>DarkChat</b></div>
+ <div class="brand"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path fill="#c9a46b" fill-rule="evenodd" d="M7 3h18a5 5 0 0 1 5 5v12a5 5 0 0 1-5 5H15l-6.2 4.6c-.7.5-1.8 0-1.8-.9V25a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm11.6 5.2a6.4 6.4 0 1 0 5.6 9.4 5.2 5.2 0 1 1-5.6-9.4z"/></svg><b>DarkChat</b></div>
  <div class="scroll">
   <div class="section">Rooms <button class="icon-btn" id="addroom" type="button" aria-label="New room" title="New room"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
   <form id="newroom"><input class="field" id="roomname" placeholder="room-name" maxlength="32" aria-label="New room name" autocomplete="off"></form>
