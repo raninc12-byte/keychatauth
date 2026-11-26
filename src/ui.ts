@@ -88,8 +88,19 @@ main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 #text{flex:1;resize:none;border:0;background:none;padding:8px 6px;max-height:160px;min-height:38px;height:38px;outline:none;line-height:1.45}
 .tool{height:38px;min-width:38px;padding:0 10px;border-radius:14px;border:1px solid transparent;background:none;color:var(--muted);font-weight:700;font-size:12px;letter-spacing:.04em}
 .tool:hover:not(:disabled){background:var(--glass-2);border-color:var(--line);color:var(--text)}
-.tool:disabled,.send:disabled{opacity:.35;cursor:default}
-.send{width:38px;height:38px;border-radius:8px;border:0;display:grid;place-items:center;color:var(--accent-ink);background:var(--accent)}
+.tool:disabled,.dc-send:disabled{opacity:.35;cursor:default}
+/* From Uiverse.io by adamgiebl - https://uiverse.io/adamgiebl/smart-moth-68
+MIT License, Copyright (c) adamgiebl
+   Flying paper-plane send button. Classes prefixed dc-send; same animation, sized for the message bar, DarkChat gold. */
+.dc-send{font-family:inherit;font-size:15px;font-weight:600;background:var(--accent);color:var(--accent-ink);height:38px;padding:0 1em 0 .9em;display:flex;align-items:center;border:none;border-radius:8px;overflow:hidden;transition:all .2s;flex:none;cursor:pointer}
+.dc-send span{display:block;margin-left:.3em;transition:all .3s ease-in-out}
+.dc-send svg{display:block;transform-origin:center center;transition:transform .3s ease-in-out}
+.dc-send:not(:disabled):hover .dc-send-wrap{animation:dc-send-fly .6s ease-in-out infinite alternate}
+.dc-send:not(:disabled):hover svg{transform:translateX(1.2em) rotate(45deg) scale(1.1)}
+.dc-send:not(:disabled):hover span{transform:translateX(5em)}
+.dc-send:not(:disabled):active{transform:scale(.95)}
+@keyframes dc-send-fly{from{transform:translateY(.1em)}to{transform:translateY(-.1em)}}
+@media (prefers-reduced-motion:reduce){.dc-send:not(:disabled):hover .dc-send-wrap{animation:none}}
 #gifpanel{position:absolute;left:14px;right:14px;bottom:calc(100% - 6px);max-height:min(440px,60dvh);display:flex;flex-direction:column;gap:8px;padding:10px;z-index:5;background:rgba(20,20,22,.92)}
 #gifpanel[hidden]{display:none}
 #gifgrid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;color:var(--muted);font-size:14px}
@@ -212,7 +223,9 @@ MIT License, Copyright (c) chase2k25 (chandu.exe)
    <input type="file" id="vidfile" accept="video/*" hidden>
    <label class="sr" for="text">Message</label>
    <textarea id="text" placeholder="Message" maxlength="4000" rows="1" disabled></textarea>
-   <button class="send" disabled aria-label="Send"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+   <!-- From Uiverse.io by adamgiebl - https://uiverse.io/adamgiebl/smart-moth-68
+MIT License, Copyright (c) adamgiebl -->
+   <button class="dc-send" disabled aria-label="Send"><div class="dc-send-wrap-1"><div class="dc-send-wrap"><svg height="20" width="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"></path><path d="M1.946 9.315c-.522-.174-.527-.455.01-.634l19.087-6.362c.529-.176.832.12.684.638l-5.454 19.086c-.15.529-.455.547-.679.045L12 14l6-8-8 6-8.054-2.685z" fill="currentColor"></path></svg></div></div><span>Send</span></button>
   </form>
  </div>
 </main>

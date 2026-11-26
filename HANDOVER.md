@@ -96,6 +96,7 @@ UPDATE user SET role = 'admin' WHERE email = 'person@example.com';
   ```
 - **Browser-recorded WebM videos report an infinite length** until you seek to the end. `compressVideo` already handles this.
 - **The Klipy integration was written without the docs.** docs.klipy.com was blocked from the build environment, so the response parsing (`toGif` in `src/index.ts`) is deliberately tolerant. Check it with a real key.
+- **uiverse.io blocks automated browsers** (Cloudflare "you have been blocked"), even with the host allowed. Uiverse components are taken from uiverse.io (the owner's preference), so browse its official MIT-licensed archive instead: `git clone --depth 1 https://github.com/uiverse-io/galaxy`. Files are named `<author>_<name>.html`, which matches the `uiverse.io/<author>/<name>` URL used in credit comments.
 - **Codex reviews every pull request automatically.** Its earlier findings were all real and fixed. Check its claims against the code; one had the right symptom but the wrong cause.
 
 ## Open items and ideas
