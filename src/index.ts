@@ -15,7 +15,9 @@ const subjects = createSubjects({
 	}),
 });
 
-const CLIENT_ID = "keychat";
+const CLIENT_ID = "darkchat";
+/** Largest video we accept after the browser has compressed it. */
+const MAX_VIDEO_BYTES = 3 * 1024 * 1024;
 const ROOM_NAME = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
 type User = { id: string; email: string };
@@ -27,17 +29,12 @@ function authServer(env: Env) {
 		providers: {
 			password: PasswordProvider(
 				PasswordUI({
-					// eslint-disable-next-line @typescript-eslint/require-await
-					sendCode: async (email, code) => {
-						// Replace with a real email sender (e.g. Resend) before going live.
-						console.log(`Sending code ${code} to ${email}`);
-					},
-					copy: { input_code: "Code (check Worker logs)" },
+					sendCode: (email, code) => sendCodeEmail(env, email, code),
 				}),
 			),
 		},
 		theme: {
-			title: "KeyChat",
+			title: "DarkChat",
 			primary: "#5b5bd6",
 			favicon: "https://workers.cloudflare.com//favicon.ico",
 		},
@@ -76,7 +73,8 @@ export default {
 				return redirect("/login", [clearCookie("kc_at"), clearCookie("kc_rt")]);
 		}
 
-		const isApp = url.pathname === "/" || url.pathname.startsWith("/api/") || url.pathname.startsWith("/ws/");
+		const isApp =
+			url.pathname === "/" || url.pathname.startsWith("/api/") || url.pathname.startsWith("/ws/") || url.pathname.startsWith("/media/");
 		if (!isApp) return auth.fetch(request, env, ctx);
 
 		// Everything below needs a signed-in user.
@@ -107,6 +105,41 @@ async function handleApp(request: Request, url: URL, env: Env, me: User): Promis
 	if (url.pathname === "/api/users") {
 		const { results } = await env.AUTH_DB.prepare(`SELECT id, email FROM user WHERE id != ? ORDER BY email`).bind(me.id).all<User>();
 		return Response.json(results.map((u) => ({ id: u.id, name: displayName(u.email) })));
+	}
+
+	if (url.pathname === "/api/gifs") return searchGifs(url, env, me);
+
+	if (url.pathname === "/api/media" && request.method === "POST") {
+		if (!sameOrigin(request, url)) return new Response("Forbidden", { status: 403 });
+		const type = request.headers.get("Content-Type") ?? "";
+		if (!/^video\/(webm|mp4)\b/.test(type)) return Response.json({ error: "Only WebM or MP4 video." }, { status: 415 });
+		const declared = Number(request.headers.get("Content-Length") ?? "0");
+		if (declared > MAX_VIDEO_BYTES) return Response.json({ error: "Video is over 3 MB after compression." }, { status: 413 });
+		const body = await request.arrayBuffer();
+		if (body.byteLength === 0 || body.byteLength > MAX_VIDEO_BYTES) {
+			return Response.json({ error: "Video is over 3 MB after compression." }, { status: 413 });
+		}
+		const key = `media/${crypto.randomUUID()}`;
+		await env.MEDIA.put(key, body, { httpMetadata: { contentType: type.split(";")[0] }, customMetadata: { uploader: me.id } });
+		return Response.json({ key, size: body.byteLength });
+	}
+
+	if (url.pathname.startsWith("/media/")) {
+		const key = url.pathname.slice(1);
+		if (!/^media\/[0-9a-f-]{36}$/.test(key)) return new Response("Not found", { status: 404 });
+		const obj = await env.MEDIA.get(key, { range: request.headers });
+		if (!obj) return new Response("Gone (media is deleted after 24 hours)", { status: 404 });
+		const headers = new Headers({ "Cache-Control": "private, max-age=3600", "Accept-Ranges": "bytes" });
+		obj.writeHttpMetadata(headers);
+		if (request.headers.has("Range") && obj.range && "offset" in obj.range) {
+			const start = obj.range.offset ?? 0;
+			const end = start + (obj.range.length ?? obj.size - start) - 1;
+			headers.set("Content-Range", `bytes ${start}-${end}/${obj.size}`);
+			headers.set("Content-Length", String(end - start + 1));
+			return new Response(obj.body, { status: 206, headers });
+		}
+		headers.set("Content-Length", String(obj.size));
+		return new Response(obj.body, { headers });
 	}
 
 	if (url.pathname === "/api/rooms") {
@@ -208,4 +241,77 @@ async function getOrCreateUser(env: Env, email: string): Promise<string> {
 		throw new Error(`Unable to process user: ${email}`);
 	}
 	return result.id;
+}
+
+/** Emails the sign-in code with Resend, or logs it when no key is configured. */
+async function sendCodeEmail(env: Env, email: string, code: string): Promise<void> {
+	if (!env.RESEND_API_KEY) {
+		console.log(`RESEND_API_KEY not set; code for ${email} is ${code}`);
+		return;
+	}
+	const res = await fetch("https://api.resend.com/emails", {
+		method: "POST",
+		headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+		body: JSON.stringify({
+			from: env.EMAIL_FROM || "DarkChat <onboarding@resend.dev>",
+			to: [email],
+			subject: `Your DarkChat code: ${code}`,
+			text: `Your DarkChat verification code is ${code}.\n\nIf you didn't ask for this, you can ignore this email.`,
+			html: `<p>Your DarkChat verification code is</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p style="color:#666">If you didn't ask for this, you can ignore this email.</p>`,
+		}),
+	});
+	if (!res.ok) {
+		console.error(`Resend failed (${res.status}): ${await res.text()}`);
+		throw new Error("Could not send the verification email.");
+	}
+}
+
+type Gif = { id: string; title: string; url: string; preview: string; w: number; h: number };
+
+/** Proxies Klipy GIF search/trending so the API key stays on the server. */
+async function searchGifs(url: URL, env: Env, me: User): Promise<Response> {
+	if (!env.KLIPY_API_KEY) return Response.json({ error: "GIFs aren't set up yet (KLIPY_API_KEY missing)." }, { status: 503 });
+	const q = (url.searchParams.get("q") ?? "").trim().slice(0, 100);
+	const page = Math.max(1, Math.min(50, Number(url.searchParams.get("page")) || 1));
+	// Klipy wants a stable, anonymous per-user id; never send the email.
+	const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("darkchat:" + me.id));
+	const customerId = [...new Uint8Array(digest).slice(0, 12)].map((b) => b.toString(16).padStart(2, "0")).join("");
+	const api = new URL(`https://api.klipy.com/api/v1/${encodeURIComponent(env.KLIPY_API_KEY)}/gifs/${q ? "search" : "trending"}`);
+	if (q) api.searchParams.set("q", q);
+	api.searchParams.set("page", String(page));
+	api.searchParams.set("per_page", "24");
+	api.searchParams.set("customer_id", customerId);
+	api.searchParams.set("locale", "en");
+	const res = await fetch(api, { cf: { cacheTtl: 300, cacheEverything: true } });
+	if (!res.ok) return Response.json({ error: `Klipy returned ${res.status}.` }, { status: 502 });
+	const json = await res.json<{ data?: { data?: unknown[]; has_next?: boolean } }>();
+	const items = (json.data?.data ?? []).map(toGif).filter((g): g is Gif => g !== null);
+	return Response.json({ gifs: items, hasNext: Boolean(json.data?.has_next) });
+}
+
+type KlipyFile = { url?: string; width?: number; height?: number };
+type KlipySizes = Record<string, Record<string, KlipyFile | undefined> | undefined>;
+
+function toGif(raw: unknown): Gif | null {
+	const item = raw as { id?: string | number; slug?: string; title?: string; type?: string; file?: KlipySizes };
+	if (!item?.file || item.type === "ad") return null;
+	const pick = (sizes: string[], formats: string[]) => {
+		for (const s of sizes) for (const f of formats) {
+			const file = item.file?.[s]?.[f];
+			if (file?.url) return file;
+		}
+		return null;
+	};
+	// Send the medium GIF in chat and use the smallest file for the picker grid.
+	const full = pick(["md", "sm", "hd", "xs"], ["gif", "webp"]);
+	const small = pick(["xs", "sm", "md"], ["webp", "gif"]) ?? full;
+	if (!full || !small) return null;
+	return {
+		id: String(item.id ?? item.slug ?? full.url),
+		title: item.title ?? "",
+		url: full.url!,
+		preview: small.url!,
+		w: full.width ?? 200,
+		h: full.height ?? 200,
+	};
 }

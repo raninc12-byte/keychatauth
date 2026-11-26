@@ -1,22 +1,36 @@
-# KeyChat
+# DarkChat
 
 Real-time chat on Cloudflare Workers, built on top of the [OpenAuth](https://openauth.js.org/) login server this repo started as.
 
 ## Features
 
 - **Rooms and direct messages.** Anyone signed in can create or join a `#room`, or message another user privately. Messages arrive instantly over WebSockets; each room and DM is its own [Durable Object](https://developers.cloudflare.com/durable-objects/).
-- **Compression.** Each message is stored deflate-compressed in the Durable Object's SQLite storage, falling back to plain text when compressing would make a tiny message bigger. Chat history is sent to the browser as one deflate-compressed binary frame, and the browser unpacks it with `DecompressionStream`. Live messages use the WebSocket's built-in `permessage-deflate` compression.
-- **Messages delete themselves after 24 hours.** Each message shows a countdown. A Durable Object alarm deletes expired messages on the server and tells open tabs to remove them. Nothing is kept after that.
-- **Accounts.** Email and password sign-up, login and password reset through OpenAuth (D1 + KV), with a signed-in session kept in HttpOnly cookies.
+- **GIFs from [KLIPY](https://klipy.com).** A GIF button opens a trending/search picker. Searches go through the Worker (`/api/gifs`), so the API key never reaches the browser and users are identified to Klipy only by an anonymous hash. Only `klipy.com` GIF links are accepted in messages.
+- **Videos compressed to the smallest size, 3 MB max.** The browser re-encodes the video before upload, aiming for about 2.5 MB. Lower budgets get a smaller picture (720p down to 240p), and audio is dropped for very long clips. If a pass comes out over 3 MB it tries again at a lower bitrate; if the original file is already smaller, the original is sent. Clips can be up to 3 minutes long. The Worker rejects anything over 3 MB and stores videos in R2.
+- **Compressed messages.** Text is stored deflate-compressed, history is sent as one compressed binary frame, and live messages use WebSocket `permessage-deflate`.
+- **Everything disappears after 24 hours.** Each message shows a countdown. A Durable Object alarm deletes expired messages *and their video files*, and open tabs remove them live.
+- **Accounts.** Email and password sign-up, login and password reset through OpenAuth. Verification codes are emailed with [Resend](https://resend.com).
 
-| Path | What it is |
-| --- | --- |
-| `/` | The chat app (redirects to `/login` when signed out) |
-| `/login`, `/logout` | Start sign-in / sign out |
-| `/api/me`, `/api/users`, `/api/rooms` | JSON API used by the app |
-| `/ws/room/:name`, `/ws/dm/:userId` | WebSocket chat connections |
+## Secrets and settings
 
-Verification codes are printed to the Worker logs (`npx wrangler tail`). Connect a real email sender in `src/index.ts` (`sendCode`) before inviting people.
+| Name | Kind | What it's for |
+| --- | --- | --- |
+| `RESEND_API_KEY` | secret | Sends verification-code emails. Without it, codes are only written to the Worker logs. |
+| `KLIPY_API_KEY` | secret | GIF search. Without it, the GIF picker shows "GIFs aren't set up yet". |
+| `EMAIL_FROM` | var in `wrangler.json` | Sender address. `onboarding@resend.dev` only delivers to your own Resend account email. Verify a domain in Resend to email everyone. |
+
+```bash
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put KLIPY_API_KEY
+```
+
+For local development, copy `.dev.vars.example` to `.dev.vars` and fill it in.
+
+As a safety net for uploads that were never sent, add a 1-day lifecycle rule to the video bucket:
+
+```bash
+npx wrangler r2 bucket lifecycle add darkchat-media expire-1d --expire-days 1
+```
 
 ## Getting Started
 
@@ -29,6 +43,8 @@ npm create cloudflare@latest -- --template=cloudflare/templates/openauth-templat
 A live public deployment of this template is available at [https://openauth-template.templates.workers.dev](https://openauth-template.templates.workers.dev)
 
 ## Setup Steps
+
+Create the R2 bucket for videos with `npx wrangler r2 bucket create darkchat-media`, then follow the steps below.
 
 1. Install the project dependencies with a package manager of your choice:
    ```bash

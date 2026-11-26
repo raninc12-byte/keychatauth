@@ -1,7 +1,7 @@
 {
 	"compatibility_date": "2025-10-08",
 	"main": "src/index.ts",
-	"name": "keychatauth",
+	"name": "darkchat",
 	"upload_source_maps": true,
 	"kv_namespaces": [
 		{
@@ -37,5 +37,14 @@
 				"ChatRoom"
 			]
 		}
-	]
+	],
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "darkchat-media"
+		}
+	],
+	"vars": {
+		"EMAIL_FROM": "DarkChat <onboarding@resend.dev>"
+	}
 }
