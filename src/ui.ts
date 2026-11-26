@@ -134,6 +134,28 @@ MIT License, Copyright (c) kennyotsu (kotsu)
 #boot{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:var(--bg);transition:opacity .3s}
 #boot.done{opacity:0;pointer-events:none}
 #note{display:flex;align-items:center;gap:10px}
+/* From Uiverse.io by chase2k25 - https://uiverse.io/chase2k25/slimy-chipmunk-97
+MIT License, Copyright (c) chase2k25 (chandu.exe)
+   Glass radio group, used for the "coming soon" plans picker. Classes prefixed dc-, look and motion unchanged.
+   Inputs are visually hidden (not display:none) so the picker also works with the keyboard. */
+.dc-glass-radio-group{--bg:rgba(255,255,255,0.06);--text:#e5e5e5;display:flex;position:relative;background:var(--bg);border-radius:1rem;backdrop-filter:blur(12px);box-shadow:inset 1px 1px 4px rgba(255,255,255,0.2),inset -1px -1px 6px rgba(0,0,0,0.3),0 4px 12px rgba(0,0,0,0.15);overflow:hidden;width:fit-content;max-width:100%}
+.dc-glass-radio-group input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.dc-glass-radio-group label{flex:1;display:flex;align-items:center;justify-content:center;min-width:80px;font-size:14px;padding:.8rem 1.6rem;cursor:pointer;font-weight:600;letter-spacing:.3px;color:var(--text);position:relative;z-index:2;transition:color .3s ease-in-out}
+.dc-glass-radio-group label:hover{color:white}
+.dc-glass-radio-group input:checked + label{color:#fff}
+.dc-glass-radio-group input:focus-visible + label{outline:2px solid #fff;outline-offset:-4px;border-radius:1rem}
+.dc-glass-glider{position:absolute;top:0;bottom:0;width:calc(100% / 3);border-radius:1rem;z-index:1;transition:transform .5s cubic-bezier(0.37,1.95,0.66,0.56),background .4s ease-in-out,box-shadow .4s ease-in-out}
+#dc-plan-silver:checked ~ .dc-glass-glider{transform:translateX(0%);background:linear-gradient(135deg,#c0c0c055,#e0e0e0);box-shadow:0 0 18px rgba(192,192,192,0.5),0 0 10px rgba(255,255,255,0.4) inset}
+#dc-plan-gold:checked ~ .dc-glass-glider{transform:translateX(100%);background:linear-gradient(135deg,#ffd70055,#ffcc00);box-shadow:0 0 18px rgba(255,215,0,0.5),0 0 10px rgba(255,235,150,0.4) inset}
+#dc-plan-platinum:checked ~ .dc-glass-glider{transform:translateX(200%);background:linear-gradient(135deg,#d0e7ff55,#a0d8ff);box-shadow:0 0 18px rgba(160,216,255,0.5),0 0 10px rgba(200,240,255,0.4) inset}
+
+/* plans window */
+#plans{width:min(460px,calc(100vw - 24px))}
+.plans-body{padding:18px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.soon{font-size:11px;font-weight:600;color:var(--warn);text-transform:lowercase}
+#planperks{align-self:stretch;margin:0;padding:14px 16px 14px 34px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.03);color:var(--muted);min-height:118px}
+#planperks li{margin:3px 0}
+.plans-foot{font-size:12.5px;color:var(--dim);text-align:center;margin:0}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;padding:10px 16px;border-radius:14px;transition:.2s;pointer-events:none;z-index:20;font-size:14px;background:rgba(20,20,22,.95)}
 #toast.show{opacity:1;transform:translateX(-50%)}
 
@@ -167,6 +189,7 @@ MIT License, Copyright (c) kennyotsu (kotsu)
  <div class="mecard">
   <div class="av sm" id="meav"></div>
   <div class="who"><div id="mename"></div><small id="merole">Signed in</small></div>
+  <button class="icon-btn" id="plansbtn" type="button" aria-label="Plans (coming soon)" title="Plans (coming soon)"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l3 5-9 13L3 8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 8h18M9 3l3 18 3-18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
   <button class="icon-btn" id="adminbtn" type="button" hidden aria-label="Admin panel" title="Admin panel"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <a class="icon-btn" href="/logout" aria-label="Sign out" title="Sign out"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 17l5-5-5-5M15 12H3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
  </div>
@@ -195,6 +218,24 @@ MIT License, Copyright (c) kennyotsu (kotsu)
 <dialog id="admin" class="glass" aria-label="Admin panel">
  <div class="dhead"><b>Members</b><input class="field" id="adminq" placeholder="Search name or email" aria-label="Search members" autocomplete="off"><button class="icon-btn" id="adminclose" type="button" aria-label="Close">✕</button></div>
  <div id="adminlist"></div>
+</dialog>
+<dialog id="plans" class="glass" aria-labelledby="planstitle">
+ <div class="dhead"><b id="planstitle">Plans</b><span class="soon">coming soon</span><button class="icon-btn" id="plansclose" type="button" aria-label="Close" style="margin-left:auto">✕</button></div>
+ <div class="plans-body">
+  <!-- From Uiverse.io by chase2k25 - https://uiverse.io/chase2k25/slimy-chipmunk-97
+MIT License, Copyright (c) chase2k25 (chandu.exe) -->
+  <div class="dc-glass-radio-group" role="radiogroup" aria-label="Plan">
+   <input type="radio" name="dc-plan" id="dc-plan-silver" value="silver" checked>
+   <label for="dc-plan-silver">Silver</label>
+   <input type="radio" name="dc-plan" id="dc-plan-gold" value="gold">
+   <label for="dc-plan-gold">Gold</label>
+   <input type="radio" name="dc-plan" id="dc-plan-platinum" value="platinum">
+   <label for="dc-plan-platinum">Platinum</label>
+   <div class="dc-glass-glider"></div>
+  </div>
+  <ul id="planperks" aria-live="polite"></ul>
+  <p class="plans-foot">Paid plans aren't available yet. Nothing can be bought and nothing is charged.</p>
+ </div>
 </dialog>
 <div id="toast" class="glass" role="status" aria-live="polite"></div>
 <template id="tpl-check"><svg class="vf" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M5 8.2l2 2 4-4.2" fill="none" stroke="#0d0d0f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></template>
@@ -540,6 +581,25 @@ $("#vidfile").onchange = async () => {
   }
 };
 
+
+// ---- Plans (coming soon) ----
+// From Uiverse.io by chase2k25 - https://uiverse.io/chase2k25/slimy-chipmunk-97
+// MIT License, Copyright (c) chase2k25 (chandu.exe)
+// Placeholder perks; nothing here is for sale yet.
+const PLAN_PERKS = {
+  silver: ["Videos up to 5 MB", "Silver badge next to your name", "Pick your avatar color"],
+  gold: ["Videos up to 10 MB", "Messages can last up to 48 hours", "Gold badge next to your name", "Create private rooms"],
+  platinum: ["Videos up to 25 MB", "Messages can last up to 7 days", "Platinum badge next to your name", "Private rooms and early access to new features"],
+};
+function showPerks() {
+  const plan = document.querySelector('input[name="dc-plan"]:checked').value;
+  $("#planperks").replaceChildren(...PLAN_PERKS[plan].map((t) => el("li", "", t)));
+}
+document.querySelectorAll('input[name="dc-plan"]').forEach((r) => (r.onchange = showPerks));
+showPerks();
+$("#plansbtn").onclick = () => $("#plans").showModal();
+$("#plansclose").onclick = () => $("#plans").close();
+$("#plans").onclick = (e) => { if (e.target === $("#plans")) $("#plans").close(); };
 
 // ---- Admin panel: verify members and set roles ----
 let adminRows = [];
