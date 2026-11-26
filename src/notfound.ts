@@ -45,7 +45,8 @@ const HTML = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#06060b">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23c9a46b' fill-rule='evenodd' d='M7 3h18a5 5 0 0 1 5 5v12a5 5 0 0 1-5 5H15l-6.2 4.6c-.7.5-1.8 0-1.8-.9V25a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm11.6 5.2a6.4 6.4 0 1 0 5.6 9.4 5.2 5.2 0 1 1-5.6-9.4z'/%3E%3C/svg%3E">
 <title>${esc(PAGE.error_code)} · ${esc(PAGE.title)}</title>
 <style>
 :root{color-scheme:dark;--text:#e8e6e3;--muted:#a19d97;--dim:#6f6b66;--line:rgba(255,255,255,.08);--ok:#7fb48a;--bad:#d98282;--accent:#c9a46b;--accent-ink:#1a1408}

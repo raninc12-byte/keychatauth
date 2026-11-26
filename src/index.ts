@@ -6,6 +6,7 @@ import { PasswordUI } from "@openauthjs/openauth/ui/password";
 import { createSubjects } from "@openauthjs/openauth/subject";
 import { object, string } from "valibot";
 import { APP_HTML } from "./ui";
+import { loginPage, registerPage } from "./authpages";
 import { notFoundPage, wantsPage } from "./notfound";
 
 export { ChatRoom } from "./chat-room";
@@ -15,6 +16,9 @@ const subjects = createSubjects({
 		id: string(),
 	}),
 });
+
+/** The DarkChat logo (a speech bubble with a crescent moon) as an SVG data URL, for OpenAuth's pages. */
+const DARKCHAT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23c9a46b' fill-rule='evenodd' d='M7 3h18a5 5 0 0 1 5 5v12a5 5 0 0 1-5 5H15l-6.2 4.6c-.7.5-1.8 0-1.8-.9V25a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm11.6 5.2a6.4 6.4 0 1 0 5.6 9.4 5.2 5.2 0 1 1-5.6-9.4z'/%3E%3C/svg%3E";
 
 const CLIENT_ID = "darkchat";
 /** Largest video we accept after the browser has compressed it. */
@@ -43,16 +47,19 @@ function authServer(env: Env) {
 		storage: CloudflareStorage({ namespace: env.AUTH_STORAGE }),
 		subjects,
 		providers: {
-			password: PasswordProvider(
-				PasswordUI({
-					sendCode: (email, code) => sendCodeEmail(env, email, code),
-				}),
-			),
+			password: PasswordProvider({
+				// Password reset still uses OpenAuth's built-in page; sign-in and sign-up use DarkChat's own.
+				...PasswordUI({ sendCode: (email, code) => sendCodeEmail(env, email, code) }),
+				login: async (_req, form, error) => loginPage(form, error),
+				register: async (_req, state, form, error) => registerPage(state, form, error),
+			}),
 		},
 		theme: {
 			title: "DarkChat",
-			primary: "#5b5bd6",
-			favicon: "https://workers.cloudflare.com//favicon.ico",
+			primary: "#c9a46b",
+			background: "#0d0d0f",
+			favicon: DARKCHAT_ICON,
+			logo: DARKCHAT_ICON,
 		},
 		success: async (ctx, value) => {
 			return ctx.subject("user", { id: await getOrCreateUser(env, value.email) });
@@ -83,10 +90,12 @@ export default {
 				if (!code) return new Response("Missing code", { status: 400 });
 				const exchanged = await client.exchange(code, redirectURI);
 				if (exchanged.err) return new Response(exchanged.err.message, { status: 400 });
-				return redirect("/", tokenCookies(exchanged.tokens.access, exchanged.tokens.refresh));
+				// "Remember me" on the sign-in page leaves kc_remember=0 for a session-only sign-in.
+				const persist = parseCookies(request.headers.get("Cookie")).kc_remember !== "0";
+				return redirect("/", [...tokenCookies(exchanged.tokens.access, exchanged.tokens.refresh, persist), expireCookie("kc_remember")]);
 			}
 			case "/logout":
-				return redirect("/login", [clearCookie("kc_at"), clearCookie("kc_rt")]);
+				return redirect("/login", [clearCookie("kc_at"), clearCookie("kc_rt"), clearCookie("kc_sess")]);
 		}
 
 		const isApp =
@@ -103,7 +112,7 @@ export default {
 			return url.pathname === "/" ? Response.redirect(url.origin + "/login", 302) : new Response("Unauthorized", { status: 401 });
 		}
 		const me = await env.AUTH_DB.prepare(`SELECT id, email, verified, role FROM user WHERE id = ?`).bind(session.userId).first<User>();
-		if (!me) return redirect("/login", [clearCookie("kc_at"), clearCookie("kc_rt")]);
+		if (!me) return redirect("/login", [clearCookie("kc_at"), clearCookie("kc_rt"), clearCookie("kc_sess")]);
 
 		const response = await handleApp(request, url, env, me);
 		if (session.refreshed) {
@@ -239,6 +248,7 @@ async function handleApp(request: Request, url: URL, env: Env, me: User): Promis
 
 async function getSession(request: Request, client: ReturnType<typeof createClient>) {
 	const cookies = parseCookies(request.headers.get("Cookie"));
+	const persist = cookies.kc_sess !== "1";
 	let access = cookies.kc_at;
 	let refresh = cookies.kc_rt;
 	let renewed = false;
@@ -256,9 +266,9 @@ async function getSession(request: Request, client: ReturnType<typeof createClie
 	return {
 		userId: verified.subject.properties.id,
 		refreshed: verified.tokens
-			? tokenCookies(verified.tokens.access, verified.tokens.refresh)
+			? tokenCookies(verified.tokens.access, verified.tokens.refresh, persist)
 			: renewed
-				? tokenCookies(access, refresh)
+				? tokenCookies(access, refresh, persist)
 				: null,
 	};
 }
@@ -281,9 +291,26 @@ function parseCookies(header: string | null): Record<string, string> {
 	return out;
 }
 
-function tokenCookies(access: string, refresh: string): string[] {
+/**
+ * Session cookies. With persist (the default, "Remember me" checked) they last 1 and 30 days;
+ * without it they have no Max-Age, so the browser drops them when it closes, and kc_sess=1
+ * keeps later token refreshes session-only too.
+ */
+function tokenCookies(access: string, refresh: string, persist = true): string[] {
 	const base = "Path=/; HttpOnly; Secure; SameSite=Lax";
-	return [`kc_at=${encodeURIComponent(access)}; ${base}; Max-Age=86400`, `kc_rt=${encodeURIComponent(refresh)}; ${base}; Max-Age=2592000`];
+	if (!persist) {
+		return [`kc_at=${encodeURIComponent(access)}; ${base}`, `kc_rt=${encodeURIComponent(refresh)}; ${base}`, `kc_sess=1; ${base}`];
+	}
+	return [
+		`kc_at=${encodeURIComponent(access)}; ${base}; Max-Age=86400`,
+		`kc_rt=${encodeURIComponent(refresh)}; ${base}; Max-Age=2592000`,
+		clearCookie("kc_sess"),
+	];
+}
+
+/** Clears a cookie the page itself set (not HttpOnly). */
+function expireCookie(name: string): string {
+	return `${name}=; Path=/; Secure; SameSite=Lax; Max-Age=0`;
 }
 
 function clearCookie(name: string): string {

@@ -6,6 +6,7 @@ export const APP_HTML = /* html */ `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06060b">
 <title>DarkChat</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23c9a46b' fill-rule='evenodd' d='M7 3h18a5 5 0 0 1 5 5v12a5 5 0 0 1-5 5H15l-6.2 4.6c-.7.5-1.8 0-1.8-.9V25a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm11.6 5.2a6.4 6.4 0 1 0 5.6 9.4 5.2 5.2 0 1 1-5.6-9.4z'/%3E%3C/svg%3E">
 <style>
 :root{color-scheme:dark;--bg:#0d0d0f;--glass:rgba(255,255,255,.035);--glass-2:rgba(255,255,255,.055);--glass-hi:rgba(255,255,255,.085);--line:rgba(255,255,255,.08);--line-2:rgba(255,255,255,.14);--text:#e8e6e3;--muted:#a19d97;--dim:#6f6b66;--accent:#c9a46b;--accent-ink:#1a1408;--ok:#7fb48a;--warn:#d6a85a;--danger:#d98282;--verified:#7aa5d6;--r:10px;--blur:blur(10px)}
 *{box-sizing:border-box}
@@ -22,7 +23,7 @@ input,textarea,select{font:inherit;color:inherit}
 /* sidebar */
 aside{width:272px;flex:none;display:flex;flex-direction:column;overflow:hidden}
 .brand{display:flex;align-items:center;gap:10px;padding:18px 18px 10px}
-.logo{width:26px;height:26px;border-radius:6px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:14px}
+.logo{width:28px;height:28px;flex:none;display:block}
 .brand b{font-size:17px;letter-spacing:-.01em}
 .scroll{flex:1;overflow:auto;padding:4px 10px 10px}
 .section{display:flex;align-items:center;justify-content:space-between;margin:14px 8px 6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
@@ -116,6 +117,46 @@ dialog[open]{display:flex;flex-direction:column}
 .switch input:checked{background:var(--verified)}
 .switch input:checked::after{transform:translateX(14px)}
 .urow select{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:9px;padding:5px 8px}
+/* From Uiverse.io by kennyotsu - https://uiverse.io/kennyotsu/fresh-lizard-20
+MIT License, Copyright (c) kennyotsu (kotsu)
+   Word-spinner loader, adapted for DarkChat: classes prefixed dc-ld, DarkChat font and accent.
+   --ld-bg must match the color behind the loader so the top/bottom fade blends in. */
+.dc-ld-card{background:#17171a;border:1px solid var(--line);padding:1rem 2rem;border-radius:var(--r)}
+.dc-ld{--ld-bg:#151517;color:var(--dim);font-weight:500;font-size:25px;line-height:40px;box-sizing:content-box;height:40px;padding:10px;display:flex;border-radius:8px}
+.dc-ld-card .dc-ld{--ld-bg:#17171a}
+.dc-ld p{margin:0}
+.dc-ld-words{overflow:hidden;position:relative}
+.dc-ld-words::after{content:"";position:absolute;inset:0;background:linear-gradient(var(--ld-bg) 10%,transparent 30%,transparent 70%,var(--ld-bg) 90%);z-index:20}
+.dc-ld-word{display:block;height:100%;padding-left:6px;color:var(--accent);animation:dc-ld-spin 4s infinite}
+@keyframes dc-ld-spin{10%{transform:translateY(-102%)}25%{transform:translateY(-100%)}35%{transform:translateY(-202%)}50%{transform:translateY(-200%)}60%{transform:translateY(-302%)}75%{transform:translateY(-300%)}85%{transform:translateY(-402%)}100%{transform:translateY(-400%)}}
+.dc-ld.sm{font-size:15px;line-height:24px;height:24px;padding:2px 0}
+#gifgrid .dc-ld{--ld-bg:#141416;grid-column:1/-1;justify-self:center;margin-top:12px}
+.ld-center{margin:auto}
+#boot{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:var(--bg);transition:opacity .3s}
+#boot.done{opacity:0;pointer-events:none}
+#note{display:flex;align-items:center;gap:10px}
+/* From Uiverse.io by chase2k25 - https://uiverse.io/chase2k25/slimy-chipmunk-97
+MIT License, Copyright (c) chase2k25 (chandu.exe)
+   Glass radio group, used for the "coming soon" plans picker. Classes prefixed dc-, look and motion unchanged.
+   Inputs are visually hidden (not display:none) so the picker also works with the keyboard. */
+.dc-glass-radio-group{--bg:rgba(255,255,255,0.06);--text:#e5e5e5;display:flex;position:relative;background:var(--bg);border-radius:1rem;backdrop-filter:blur(12px);box-shadow:inset 1px 1px 4px rgba(255,255,255,0.2),inset -1px -1px 6px rgba(0,0,0,0.3),0 4px 12px rgba(0,0,0,0.15);overflow:hidden;width:fit-content;max-width:100%}
+.dc-glass-radio-group input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.dc-glass-radio-group label{flex:1;display:flex;align-items:center;justify-content:center;min-width:80px;font-size:14px;padding:.8rem 1.6rem;cursor:pointer;font-weight:600;letter-spacing:.3px;color:var(--text);position:relative;z-index:2;transition:color .3s ease-in-out}
+.dc-glass-radio-group label:hover{color:white}
+.dc-glass-radio-group input:checked + label{color:#fff}
+.dc-glass-radio-group input:focus-visible + label{outline:2px solid #fff;outline-offset:-4px;border-radius:1rem}
+.dc-glass-glider{position:absolute;top:0;bottom:0;width:calc(100% / 3);border-radius:1rem;z-index:1;transition:transform .5s cubic-bezier(0.37,1.95,0.66,0.56),background .4s ease-in-out,box-shadow .4s ease-in-out}
+#dc-plan-silver:checked ~ .dc-glass-glider{transform:translateX(0%);background:linear-gradient(135deg,#c0c0c055,#e0e0e0);box-shadow:0 0 18px rgba(192,192,192,0.5),0 0 10px rgba(255,255,255,0.4) inset}
+#dc-plan-gold:checked ~ .dc-glass-glider{transform:translateX(100%);background:linear-gradient(135deg,#ffd70055,#ffcc00);box-shadow:0 0 18px rgba(255,215,0,0.5),0 0 10px rgba(255,235,150,0.4) inset}
+#dc-plan-platinum:checked ~ .dc-glass-glider{transform:translateX(200%);background:linear-gradient(135deg,#d0e7ff55,#a0d8ff);box-shadow:0 0 18px rgba(160,216,255,0.5),0 0 10px rgba(200,240,255,0.4) inset}
+
+/* plans window */
+#plans{width:min(460px,calc(100vw - 24px))}
+.plans-body{padding:18px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.soon{font-size:11px;font-weight:600;color:var(--warn);text-transform:lowercase}
+#planperks{align-self:stretch;margin:0;padding:14px 16px 14px 34px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.03);color:var(--muted);min-height:118px}
+#planperks li{margin:3px 0}
+.plans-foot{font-size:12.5px;color:var(--dim);text-align:center;margin:0}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;padding:10px 16px;border-radius:14px;transition:.2s;pointer-events:none;z-index:20;font-size:14px;background:rgba(20,20,22,.95)}
 #toast.show{opacity:1;transform:translateX(-50%)}
 
@@ -138,7 +179,7 @@ dialog[open]{display:flex;flex-direction:column}
 </head>
 <body>
 <aside class="glass" aria-label="Chats">
- <div class="brand"><div class="logo" aria-hidden="true">D</div><b>DarkChat</b></div>
+ <div class="brand"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path fill="#c9a46b" fill-rule="evenodd" d="M7 3h18a5 5 0 0 1 5 5v12a5 5 0 0 1-5 5H15l-6.2 4.6c-.7.5-1.8 0-1.8-.9V25a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm11.6 5.2a6.4 6.4 0 1 0 5.6 9.4 5.2 5.2 0 1 1-5.6-9.4z"/></svg><b>DarkChat</b></div>
  <div class="scroll">
   <div class="section">Rooms <button class="icon-btn" id="addroom" type="button" aria-label="New room" title="New room"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
   <form id="newroom"><input class="field" id="roomname" placeholder="room-name" maxlength="32" aria-label="New room name" autocomplete="off"></form>
@@ -149,6 +190,7 @@ dialog[open]{display:flex;flex-direction:column}
  <div class="mecard">
   <div class="av sm" id="meav"></div>
   <div class="who"><div id="mename"></div><small id="merole">Signed in</small></div>
+  <button class="icon-btn" id="plansbtn" type="button" aria-label="Plans (coming soon)" title="Plans (coming soon)"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l3 5-9 13L3 8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 8h18M9 3l3 18 3-18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
   <button class="icon-btn" id="adminbtn" type="button" hidden aria-label="Admin panel" title="Admin panel"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <a class="icon-btn" href="/logout" aria-label="Sign out" title="Sign out"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 17l5-5-5-5M15 12H3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
  </div>
@@ -178,6 +220,24 @@ dialog[open]{display:flex;flex-direction:column}
  <div class="dhead"><b>Members</b><input class="field" id="adminq" placeholder="Search name or email" aria-label="Search members" autocomplete="off"><button class="icon-btn" id="adminclose" type="button" aria-label="Close">✕</button></div>
  <div id="adminlist"></div>
 </dialog>
+<dialog id="plans" class="glass" aria-labelledby="planstitle">
+ <div class="dhead"><b id="planstitle">Plans</b><span class="soon">coming soon</span><button class="icon-btn" id="plansclose" type="button" aria-label="Close" style="margin-left:auto">✕</button></div>
+ <div class="plans-body">
+  <!-- From Uiverse.io by chase2k25 - https://uiverse.io/chase2k25/slimy-chipmunk-97
+MIT License, Copyright (c) chase2k25 (chandu.exe) -->
+  <div class="dc-glass-radio-group" role="radiogroup" aria-label="Plan">
+   <input type="radio" name="dc-plan" id="dc-plan-silver" value="silver" checked>
+   <label for="dc-plan-silver">Silver</label>
+   <input type="radio" name="dc-plan" id="dc-plan-gold" value="gold">
+   <label for="dc-plan-gold">Gold</label>
+   <input type="radio" name="dc-plan" id="dc-plan-platinum" value="platinum">
+   <label for="dc-plan-platinum">Platinum</label>
+   <div class="dc-glass-glider"></div>
+  </div>
+  <ul id="planperks" aria-live="polite"></ul>
+  <p class="plans-foot">Paid plans aren't available yet. Nothing can be bought and nothing is charged.</p>
+ </div>
+</dialog>
 <div id="toast" class="glass" role="status" aria-live="polite"></div>
 <template id="tpl-check"><svg class="vf" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M5 8.2l2 2 4-4.2" fill="none" stroke="#0d0d0f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></template>
 <script>
@@ -186,7 +246,35 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 let me, ws, current, messages = new Map(), users = new Map();
 
 function toast(t) { const n = $("#toast"); n.textContent = t; n.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => n.classList.remove("show"), 3200); }
+// ---- Loader ----
+// From Uiverse.io by kennyotsu - https://uiverse.io/kennyotsu/fresh-lizard-20
+// MIT License, Copyright (c) kennyotsu (kotsu)
+const LOADER_WORDS = {
+  chat: ["rooms", "messages", "members", "gifs", "rooms"],
+  video: ["video", "frames", "audio", "upload", "video"],
+  gif: ["gifs", "reactions", "memes", "trending", "gifs"],
+};
+function loader(words, small) {
+  const box = el("div", "dc-ld" + (small ? " sm" : ""));
+  box.setAttribute("role", "status");
+  box.setAttribute("aria-label", "Loading");
+  const list = el("div", "dc-ld-words");
+  list.setAttribute("aria-hidden", "true");
+  for (const w of words) list.append(el("span", "dc-ld-word", w));
+  box.append(el("p", "", "loading"), list);
+  return box;
+}
+function loaderCard(words) { const c = el("div", "dc-ld-card"); c.append(loader(words)); return c; }
+const boot = el("div"); boot.id = "boot"; boot.append(loaderCard(LOADER_WORDS.chat)); document.body.append(boot);
+
 const note = (t) => { $("#note").textContent = t; };
+// Progress text next to a loader; the loader is kept between updates so its animation doesn't restart.
+function busyNote(t) {
+  const n = $("#note");
+  let span = n.querySelector(".note-text");
+  if (!span) { span = el("span", "note-text"); n.replaceChildren(loader(LOADER_WORDS.video, true), span); }
+  span.textContent = t;
+}
 
 function hue(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
 function avatar(name, small) {
@@ -283,7 +371,8 @@ function open(kind, id) {
   else { const u = users.get(id); title.append(avatar(u ? u.name : "?", true), el("span", "", u ? u.name : "Direct message"), badges(u)); }
   document.querySelectorAll(".item").forEach((b) => b.classList.toggle("active", b.dataset.key === kind + ":" + id));
   setStatus("connecting…");
-  $("#log").replaceChildren();
+  const waiting = loaderCard(LOADER_WORDS.chat); waiting.classList.add("ld-center");
+  $("#log").replaceChildren(waiting);
   ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/" + kind + "/" + encodeURIComponent(id));
   ws.binaryType = "arraybuffer";
   ws.onopen = () => { setStatus("live", true); document.querySelectorAll("#send button, #text").forEach((b) => b.disabled = false); $("#text").focus(); };
@@ -365,7 +454,7 @@ function sendMedia(media, sock = ws) {
 let gifTimer;
 async function loadGifs(q) {
   const grid = $("#gifgrid");
-  grid.textContent = "Loading…";
+  grid.replaceChildren(loader(LOADER_WORDS.gif, true));
   const res = await fetch("/api/gifs?q=" + encodeURIComponent(q));
   const body = await res.json().catch(() => ({ error: "Couldn't load GIFs." }));
   grid.replaceChildren();
@@ -477,8 +566,8 @@ $("#vidfile").onchange = async () => {
   const startedIn = ws;
   try {
     const before = (file.size / 1048576).toFixed(1);
-    const out = await compressVideo(file, (p, attempt) => note("Compressing video" + (attempt ? " (pass " + (attempt + 1) + ")" : "") + "… " + Math.round(p * 100) + "% — keep this tab open"));
-    note("Uploading " + (out.blob.size / 1048576).toFixed(2) + " MB (was " + before + " MB)…");
+    const out = await compressVideo(file, (p, attempt) => busyNote("Compressing video" + (attempt ? " (pass " + (attempt + 1) + ")" : "") + "… " + Math.round(p * 100) + "% — keep this tab open"));
+    busyNote("Uploading " + (out.blob.size / 1048576).toFixed(2) + " MB (was " + before + " MB)…");
     const res = await fetch("/api/media", { method: "POST", headers: { "Content-Type": out.blob.type }, body: out.blob });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || "Upload failed.");
@@ -493,6 +582,25 @@ $("#vidfile").onchange = async () => {
   }
 };
 
+
+// ---- Plans (coming soon) ----
+// From Uiverse.io by chase2k25 - https://uiverse.io/chase2k25/slimy-chipmunk-97
+// MIT License, Copyright (c) chase2k25 (chandu.exe)
+// Placeholder perks; nothing here is for sale yet.
+const PLAN_PERKS = {
+  silver: ["Videos up to 5 MB", "Silver badge next to your name", "Pick your avatar color"],
+  gold: ["Videos up to 10 MB", "Messages can last up to 48 hours", "Gold badge next to your name", "Create private rooms"],
+  platinum: ["Videos up to 25 MB", "Messages can last up to 7 days", "Platinum badge next to your name", "Private rooms and early access to new features"],
+};
+function showPerks() {
+  const plan = document.querySelector('input[name="dc-plan"]:checked').value;
+  $("#planperks").replaceChildren(...PLAN_PERKS[plan].map((t) => el("li", "", t)));
+}
+document.querySelectorAll('input[name="dc-plan"]').forEach((r) => (r.onchange = showPerks));
+showPerks();
+$("#plansbtn").onclick = () => $("#plans").showModal();
+$("#plansclose").onclick = () => $("#plans").close();
+$("#plans").onclick = (e) => { if (e.target === $("#plans")) $("#plans").close(); };
 
 // ---- Admin panel: verify members and set roles ----
 let adminRows = [];
@@ -539,11 +647,18 @@ $("#menu").onclick = () => document.body.classList.toggle("nav");
 $("main").addEventListener("click", (e) => { if (document.body.classList.contains("nav") && !e.target.closest("#menu")) document.body.classList.remove("nav"); });
 
 (async () => {
-  me = await (await fetch("/api/me")).json();
-  await loadUsers();
-  const rooms = await loadRooms();
-  if (rooms.includes("general")) open("room", "general");
-  setInterval(loadUsers, 60000);
+  try {
+    me = await (await fetch("/api/me")).json();
+    await loadUsers();
+    const rooms = await loadRooms();
+    if (rooms.includes("general")) open("room", "general");
+    setInterval(loadUsers, 60000);
+  } catch {
+    toast("Couldn't load DarkChat. Try refreshing.");
+  } finally {
+    boot.classList.add("done");
+    setTimeout(() => boot.remove(), 400);
+  }
 })();
 </script>
 </body>
