@@ -9,6 +9,8 @@ Real-time chat on Cloudflare Workers, built on top of the [OpenAuth](https://ope
 - **Videos compressed to the smallest size, 3 MB max.** The browser re-encodes the video before upload, aiming for about 2.5 MB. Lower budgets get a smaller picture (720p down to 240p), and audio is dropped for very long clips. If a pass comes out over 3 MB it tries again at a lower bitrate; if the original file is already smaller, the original is sent. Clips can be up to 3 minutes long. The Worker rejects anything over 3 MB and stores videos in R2.
 - **Compressed messages.** Text is stored deflate-compressed, history is sent as one compressed binary frame, and live messages use WebSocket `permessage-deflate`.
 - **Everything disappears after 24 hours.** Each message shows a countdown. A Durable Object alarm deletes expired messages *and their video files*, and open tabs remove them live.
+- **Badges and verification.** Members can show a blue Verified check, an ADMIN or MOD role badge, and a ★ EARLY badge (the first 100 people to sign up, worked out from sign-up order). Admins open the shield button next to their name to verify members and set roles. Nobody can remove their own admin role. To make the first admin, run `UPDATE user SET role = 'admin' WHERE email = 'you@example.com'` on the D1 database.
+- **Liquid-glass design.** A minimal dark theme with frosted-glass panels, avatars, grouped messages and a mobile drawer. It's one HTML page with no frameworks, fonts or images.
 - **Accounts.** Email and password sign-up, login and password reset through OpenAuth. Verification codes are emailed with [Resend](https://resend.com).
 
 ## Secrets and settings
